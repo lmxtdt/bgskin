@@ -5,22 +5,19 @@
 
 cd ~/backgroundKinship
 
-let "rep = 7810000"
+let "rep = 0"
 
-#cost: 0.1 benefit: 0.21
+#cost: 0.0 benefit: 0.20
 let "c = 10"
-let "b = 21"
+let "b = 20"
 
-#fitness: -0.008
-let "f = -8"
-
-for j in {1..27677}
+for f in 0 -1000 -6 -8 -10 -12 -14
 	do for iter in {0..9}
 		do ../build/slim -d "replicate = $rep" -d "iter = $iter" \
+				-d "K = 10" -d "popSize = 10" -d "numPops = 100" -d "mRate100 = 10"\
 				-d "f = $f" -d "b = $b" -d "c = $c" \
-				-d "outputPath = 'BGSKLate25.csv'" -d "makeSeeds = 0" \
-				-m -t BGSandKinshipLate.slim
+				-d "outputPath = 'islandSeeds.csv'" -d "makeSeeds = 1" \
+				-m -t BGSandKinshipIsland.slim
 		let "rep += 1"
 	done;
 done
-

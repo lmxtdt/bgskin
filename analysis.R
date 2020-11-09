@@ -3,11 +3,11 @@ setwd("~/Desktop/Brandvain Lab/BG and kinship/")
 
 processRaw <- function(rawData) {
   filtered <- rawData %>% 
-                  group_by(replicate) %>%
-                  mutate(maxGen = max(generation)) %>%
-                  ungroup() %>%
-                  filter(generation == maxGen) %>%
-                  select(-maxGen) %>%
+                  #group_by(replicate) %>%
+                  #mutate(maxGen = max(generation)) %>%
+                  #ungroup() %>%
+                  #filter(generation == maxGen) %>%
+                  #select(-maxGen) %>%
                   filter(status != "ongoing")
   return(filtered)
 }
@@ -112,16 +112,49 @@ fineRaw <- read_csv("CSVs/fineTotal.csv")
 fine <- processRaw(fineRaw)
 fineStats <- getStats(fine)
 
-#something went wrong with fineTotal.csv
-fineStats <- fineStats %>% filter(numTotal != 0)
+#more cases but there's an issue with the file
+fineRaw2 <- read_csv("CSVs/fineTotal2.csv")
+fine2 <- processRaw(fineRaw2)
+fineStats2 <- getStats(fine2)
+fineStats2 <- fineStats2 %>% filter(numTotal != 0)
 
 ggplot(fineStats %>% mutate(fitness = factor(fitness)),
        aes (x = fitness, 
             y  = percentFixed,
-            group = factor(benefit))) + 
+            group = factor(benefit),
+            color = factor(benefit))) + 
   geom_line() +
   facet_wrap(~benefit, scales = "free_y")  + 
   geom_hline(yintercept = 1/6000, color = "red") +
   xlab("Fitness of detrimental allele") + 
   ylab("Fixation rate of altruistic allele") + 
   ggtitle("Fixation by Benefit—smaller increments")
+
+#islands
+islandRaw <- read_csv("CSVs/islandTotal.csv")
+island <- processRaw(islandRaw)
+islandStats <- getStats(island)
+
+ggplot(islandStats %>% mutate(fitness = factor(fitness)),
+       aes (x = fitness, 
+            y  = percentFixed,
+            group = factor(benefit))) + 
+  geom_line() +
+  facet_wrap(~benefit, scales = "free_y")  + 
+  #geom_hline(yintercept = 1/6000, color = "red") +
+  xlab("Fitness of detrimental allele") + 
+  ylab("Fixation rate of altruistic allele") + 
+  ggtitle("Fixation by Benefit—Island Model")
+
+ggplot(islandStats %>% mutate(fitness = factor(fitness)),
+       aes(x = fitness,
+           y = percentFixed,
+           group = factor(benefit),
+           color = factor(benefit))) + 
+  geom_line() + 
+  geom_hline(yintercept = 1/6000, color = "red") + 
+  ggtitle("Fixation by Benefit in an island model")
+
+
+
+
