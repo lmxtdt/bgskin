@@ -54,8 +54,7 @@ function (f$)subpopHeterozygosity(o<Subpopulation>$ subpop, o<MutationType>$m, [
 	return pi_total / sampleSize;
 }
 
-
-// initialize
+//INITIALIZE
 initialize() {
 	initializeSLiMModelType("nonWF");
 	
@@ -72,8 +71,10 @@ initialize() {
 	defineConstant("cost", c / 1000);
 	defineConstant("benefit", b / 1000);
 	
-	defineConstant("seedPath", paste(c("seeds/seed_",
+	defineConstant("seedPath", paste(c("seeds/seed_recom_",
 														fitness,
+														"_",
+														recomRate,
 														"_",
 														iter,
 														".txt"),
@@ -97,7 +98,7 @@ initialize() {
 	// uniform chromosome of length 100 kb with uniform recombination
 	initializeGenomicElement(g1, 0, 99999);
 	
-	initializeRecombinationRate(1e-8);
+	initializeRecombinationRate(recomRate);
 	
 	initializeMutationRate(1e-7);
 }
@@ -111,7 +112,7 @@ reproduction() {
 	for (i in seq(0, p1.individualCount - 2, by=2)){
 		parent1 = parents[i];
 		parent2 = parents[i + 1];
-
+		
 		//fill litter with random individuals
 		litter = matrix(p1.individuals[1:litterSize], litterSize);
 		
@@ -172,7 +173,7 @@ fitness(NULL){
 	}
 }
 
-4999 late(){
+5000 early(){
 	target = sample(p1.genomes, 1);
 	target.addNewDrawnMutation(m1, 1000);
 }
@@ -218,6 +219,7 @@ late() {
 						cost,
 						benefit,
 						litterSize,
+						recomRate,
 						sum(sim.subpopulations.individualCount),
 						length(unique(p1.genomes.mutations[p1.genomes.mutations.mutationType == m2])),
 						subpopHeterozygosity(p1, m2),

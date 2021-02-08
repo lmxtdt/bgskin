@@ -54,8 +54,7 @@ function (f$)subpopHeterozygosity(o<Subpopulation>$ subpop, o<MutationType>$m, [
 	return pi_total / sampleSize;
 }
 
-
-// initialize
+//INITIALIZE
 initialize() {
 	initializeSLiMModelType("nonWF");
 	
@@ -111,7 +110,7 @@ reproduction() {
 	for (i in seq(0, p1.individualCount - 2, by=2)){
 		parent1 = parents[i];
 		parent2 = parents[i + 1];
-
+		
 		//fill litter with random individuals
 		litter = matrix(p1.individuals[1:litterSize], litterSize);
 		
@@ -121,25 +120,25 @@ reproduction() {
 			litter[j] = child;
 		}
 			
-		//have siblings interact
-		for (k in seqLen(litterSize)){
-			for (l in seqLen(litterSize - k - 1)){
-				ind1 = litter[k];
-				ind2 = litter[k + l + 1];
-				
-				// altruism is dominant
-				ind1m1 = ind1.countOfMutationsOfType(m1);
-				ind2m1 = ind2.countOfMutationsOfType(m1);
-				if(ind1m1 > 0){
-					ind1.tagF = ind1.tagF - cost;
-					ind2.tagF = ind2.tagF + benefit;
-				}
-				
-				if(ind2m1 > 0){
-					ind2.tagF = ind2.tagF - cost;
-					ind1.tagF = ind1.tagF + benefit;
-				}
-			}
+		//have two siblings interact
+		ind1 = sample(litter, 1);
+
+		do{
+			ind2 = sample(litter, 1);
+		} while(ind1 == ind2);
+			
+		// altruism is dominant
+		ind1m1 = ind1.countOfMutationsOfType(m1);
+		ind2m1 = ind2.countOfMutationsOfType(m1);
+		if(ind1m1 > 0){
+			ind1.tagF = ind1.tagF - cost;
+			ind2.tagF = ind2.tagF + benefit;
+		}
+		
+		if(ind2m1 > 0){
+			ind2.tagF = ind2.tagF - cost;
+			ind1.tagF = ind1.tagF + benefit;
+			
 		}
 	}
 
@@ -172,7 +171,7 @@ fitness(NULL){
 	}
 }
 
-4999 late(){
+5000 early(){
 	target = sample(p1.genomes, 1);
 	target.addNewDrawnMutation(m1, 1000);
 }

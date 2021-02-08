@@ -54,25 +54,57 @@ function (f$)subpopHeterozygosity(o<Subpopulation>$ subpop, o<MutationType>$m, [
 	return pi_total / sampleSize;
 }
 
+function (f$)subpopAllHeterozygosity(o<MutationType>$m, [i$ sampleSize=100])
+{
+	if (sampleSize >= sum(sim.subpopulations.individualCount))
+		sampledIndividuals = sim.subpopulations.individuals;
+	else
+		sampledIndividuals = sample(sim.subpopulations.individuals, sampleSize, replace=T);
+	
+	pi_total = 0;
+	for (individual in sampledIndividuals)
+	{
+		genomes = individual.genomes;
+		individual_pi = genomicHeterozygosity(genomes[0], genomes[1], m);
+		pi_total = pi_total + individual_pi;
+	}
+	return pi_total / sampleSize;
+}
 
-// initialize
+
+// set up a simple neutral simulation
 initialize() {
 	initializeSLiMModelType("nonWF");
 	
-	//carrying capacity
-	defineConstant("K", 1000);
-	//starting population size
-	defineConstant("popSize", 1000);
+	//setSeed(2408719498743);
+	
+	//carrying capacity per island
+	defineConstant("K", 6);
+	//starting population size per population
+	defineConstant("popSize", 10);
+	//number of populations
+	defineConstant("numPops", 100);
+
+	
+	//migration rate
+	defineConstant("mRate", 30 / 100);	
 		
 	//fitness
-	defineConstant("fitness", f / 1000);
+	defineConstant("fitness", 0 / 1000);
+	
+	//just try
+	defineConstant("iter", 0);
+	defineConstant("replicate", 0);
+	defineConstant("makeSeeds", 0);
+	defineConstant("litterSize", 4);
 	
 	//other
 	//defineConstant("replicate", 1);
-	defineConstant("cost", c / 1000);
-	defineConstant("benefit", b / 1000);
+	defineConstant("cost", 0.01);
+	defineConstant("benefit", 0.03);
+	defineConstant("outputPath", "test.csv");
 	
-	defineConstant("seedPath", paste(c("seeds/seed_",
+	defineConstant("seedPath", paste(c("seeds/seed_island_",
 														fitness,
 														"_",
 														iter,
@@ -103,46 +135,28 @@ initialize() {
 }
 
 reproduction() {
+	for(p in sim.subpopulations){
+		// randomize the order of p.individuals
+		parents = sample(p.individuals, p.individualCount);
 
-	// randomize the order of p1.individuals
-	parents = sample(p1.individuals, p1.individualCount);
-	
-	// draw monogamous pairs and generate litters
-	for (i in seq(0, p1.individualCount - 2, by=2)){
-		parent1 = parents[i];
-		parent2 = parents[i + 1];
-
-		//fill litter with random individuals
-		litter = matrix(p1.individuals[1:litterSize], litterSize);
+		//make sure there are enough individuals to have children
+		if(p.individualCount < 2){
+			next;
+		}
 		
-		for (j in seqLen(litterSize)){
-			child = p1.addCrossed(parent1, parent2);
-			child.tagF = 0;
-			litter[j] = child;
-		}
-			
-		//have siblings interact
-		for (k in seqLen(litterSize)){
-			for (l in seqLen(litterSize - k - 1)){
-				ind1 = litter[k];
-				ind2 = litter[k + l + 1];
-				
-				// altruism is dominant
-				ind1m1 = ind1.countOfMutationsOfType(m1);
-				ind2m1 = ind2.countOfMutationsOfType(m1);
-				if(ind1m1 > 0){
-					ind1.tagF = ind1.tagF - cost;
-					ind2.tagF = ind2.tagF + benefit;
-				}
-				
-				if(ind2m1 > 0){
-					ind2.tagF = ind2.tagF - cost;
-					ind1.tagF = ind1.tagF + benefit;
-				}
+		// draw monogamous pairs and generate litters
+		for (i in seq(0, p.individualCount - 2, by=2)){
+			parent1 = parents[i];
+			parent2 = parents[i + 1];
+									
+			for (j in seqLen(litterSize)){
+				child = p.addCrossed(parent1, parent2);
+				child.tagF = 0;
 			}
-		}
-	}
-
+				
+		} //end parent pair loop
+	} //end subpopulation loop
+	
 	// disable this callback for this generation
 	self.active = 0;
 }
@@ -160,8 +174,12 @@ fitness(NULL){
 		sim.generation = 4999;
 	}
 	else{
-		sim.addSubpop("p1", popSize);
-		p1.individuals.tagF = 0;
+		for(i in seqLen(numPops)){
+			sim.addSubpop(i, popSize);
+		}
+		
+		
+		sim.subpopulations.individuals.tagF = 0;
 	}
 }
 
@@ -172,20 +190,114 @@ fitness(NULL){
 	}
 }
 
-4999 late(){
-	target = sample(p1.genomes, 1);
+5000 early(){
+	target = sample(sim.subpopulations.genomes, 10);
 	target.addNewDrawnMutation(m1, 1000);
 }
 
 early() {
-	//age table
-	old = p1.individuals[p1.individuals.age >= 1];
-	old.fitnessScaling = 0;
+	//interact within subpopulations
+	for (p in sim.subpopulations){
+		//only young individuals interact (those born this generation)
+		young = p.individuals[p.individuals.age == 0];
+
+		//every young individual may interact with others
+		for (y in young){
+
+			//interact with 3 others OR the number of all available others
+			//if there are less than 3 others
+			numOthers = min(3, length(young) - 1);
+
+			//sample numOthers + 1, in case one the sampled ind.s is y
+			//then the extra one sampled is used instead
+			others = sample(young, numOthers + 1);
+			skippedSelf = F;
+
+			//run through the interactions for this individual, y
+			for (i in seqLen(numOthers)){
+				//get the other participant of this interaction
+				o = others[i];
+
+				//check if o == y and skip if so
+				if(o == y){
+					skippedSelf = T;
+					next;
+				}
+
+				//otherwise, interact (one-way)
+				ym1 = y.countOfMutationsOfType(m1);
+				om1 = o.countOfMutationsOfType(m1);
+
+				//if y is altruistic
+				if (ym1 > 0){
+					y.tagF = y.tagF - cost;
+					o.tagF = o.tagF + benefit;
+					print(paste(c(y.index, "helps", o.index, "in population", p.id)));
+				}
+
+				//if o is altruistic
+				/*if (om1 > 0){
+					o.tagF = o.tagF + benefit;
+					y.tagF = y.tagF - cost;
+				}*/
+			}
+			//if self was skipped, use the last one in others
+			if(skippedSelf){
+				o = others[numOthers];
+
+				//interact with o (one-way)
+				ym1 = y.countOfMutationsOfType(m1);
+				om1 = o.countOfMutationsOfType(m1);
+
+				if (ym1 > 0){
+					y.tagF = y.tagF - cost;
+					o.tagF = o.tagF + benefit;
+					print(paste(c(y.index, "helps", o.index, "in population", p.id)));
+				}
+
+				/*if (om1 > 0){
+					o.tagF = o.tagF + benefit;
+					y.tagF = y.tagF - cost;
+				}*/
+			}
+
+		}
+	} //end altruistic interactions
+
+	//begin random migration
 	
-	//first only consider individuals who aren't meant to die yet
-	adjustedPopulationSize = p1.individualCount - length(old);
-	//then adjust survival for carrying capacity, K
-	p1.fitnessScaling = K / adjustedPopulationSize;
+	//get the migrants
+	nIndividuals = sum(sim.subpopulations.individualCount);
+	if(nIndividuals > 0){
+		nMigrants = rpois(1, nIndividuals * mRate);
+		if(nMigrants > nIndividuals){
+			nMigrants = nIndividuals;
+		}
+		migrants = sample(sim.subpopulations.individuals, nMigrants);
+		
+		//move them to different subpopulations
+		for(migrant in migrants){
+			do{
+				dest = sample(sim.subpopulations, 1);
+			}
+			while(dest == migrant.subpopulation);
+			
+			dest.takeMigrants(migrant);
+		}
+	}
+
+
+	//adjust fitness for age and carrying capacity
+	for(p in sim.subpopulations){
+		//age table
+		old = p.individuals[p.individuals.age >= 1];
+		old.fitnessScaling = 0;
+
+		//first only consider individuals who aren't meant to die yet
+		adjustedPopulationSize = p.individualCount - length(old);
+		//then adjust survival for carrying capacity, K
+		p.fitnessScaling = K / adjustedPopulationSize;
+	}
 }
 
 
@@ -204,7 +316,7 @@ late() {
 			status = "fixed";
 		}
 		else if(!(sim.generation % 10)){
-			//status = "ongoing"; //removed to save space
+			status = "ongoing";
 		}
 		
 		if(status != "NONE"){
@@ -219,8 +331,11 @@ late() {
 						benefit,
 						litterSize,
 						sum(sim.subpopulations.individualCount),
-						length(unique(p1.genomes.mutations[p1.genomes.mutations.mutationType == m2])),
-						subpopHeterozygosity(p1, m2),
+						length(unique(
+							sim.subpopulations.genomes.mutations[
+								sim.subpopulations.genomes.mutations.mutationType == m2]
+							)),
+						subpopAllHeterozygosity(m2),
 						percentM1,
 						status,
 						replicate,

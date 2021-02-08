@@ -71,8 +71,74 @@ function (f$)subpopAllHeterozygosity(o<MutationType>$m, [i$ sampleSize=100])
 	return pi_total / sampleSize;
 }
 
+//  (f$)calcFST(o<Subpopulation>$ subpop1, o<Subpopulation>$ subpop2)
+//
+//  Calculate the FST between two subpopulations
+//
+//  Note that this is also part of recipe 11.1, beginning in SLiM 2.5.
 
-// set up a simple neutral simulation
+//  Created by Ben Haller on 10/20/2017.
+//  A product of the Messer Lab, http://messerlab.org/slim/
+
+/*
+
+Ben Haller and Philipp Messer, the authors of this code, hereby place the code in this file into the public domain without restriction.  If you use this code, please credit SLiM-Extras and provide a link to the SLiM-Extras repository at https://github.com/MesserLab/SLiM-Extras.  Thank you.
+
+*/
+
+
+function (f$)calcFST(o<Subpopulation>$ subpop1, o<Subpopulation>$ subpop2)
+{
+	p1_p = sim.mutationFrequencies(subpop1);
+	p2_p = sim.mutationFrequencies(subpop2);
+	mean_p = (p1_p + p2_p) / 2.0;
+	H_t = 2.0 * mean_p * (1.0 - mean_p);
+	H_s = p1_p * (1.0 - p1_p) + p2_p * (1.0 - p2_p);
+	fst = 1.0 - H_s/H_t;
+	fst = fst[!isNAN(fst)];  // exclude muts where mean_p is 0.0 or 1.0
+	return mean(fst);
+}
+
+
+function (f$)globalFST([logical$ weighted = F]){
+	//initialize sums
+	sumPop = 0;
+	numMuts = length(sim.mutations);
+	sumMuts = rep(0, numMuts);
+	sumHs = rep(0, numMuts);
+	
+	//loop through each subpopulation
+	for(p in sim.subpopulations){
+		//population size
+		if(weighted){
+			n = p.individualCount;
+		}
+		else{
+			n = 1;
+		}
+		sumPop = sumPop + n;
+		
+		//mutation frequencies
+		muts = sim.mutationFrequencies(p);
+		sumMuts = sumMuts + (n * muts);
+		
+		//Hs
+		Hs = 2 * muts * (1 - muts);
+		sumHs = sumHs + (n * Hs);
+	}
+	
+	//get mean
+	meanP = sumMuts / sumPop;
+	Ht = 2 * meanP * (1 - meanP);
+	
+	finalHs = sumHs / sumPop;
+	
+	fst = 1.0 - (finalHs/Ht);
+	fst = fst[!isNAN(fst)]; //exclude fixed & lost mutations
+	return mean(fst);	
+}
+
+// INTIALIZE
 initialize() {
 	initializeSLiMModelType("nonWF");
 	
@@ -83,15 +149,15 @@ initialize() {
 	//number of populations
 	//defineConstant("numPops", 100);
 	//migration rate
-	defineConstant("mRate", mRate100 / 100);	
+	defineConstant("mRate", mRate100 / 100);
 		
 	//fitness
 	defineConstant("fitness", f / 1000);
 	
 	//other
 	//defineConstant("replicate", 1);
-	defineConstant("cost", c / 100);
-	defineConstant("benefit", b / 100);
+	defineConstant("cost", c / 1000);
+	defineConstant("benefit", b / 1000);
 	
 	defineConstant("seedPath", paste(c("seeds/seed_island_",
 														fitness,
@@ -137,9 +203,7 @@ reproduction() {
 		for (i in seq(0, p.individualCount - 2, by=2)){
 			parent1 = parents[i];
 			parent2 = parents[i + 1];
-			
-			litterSize = 4;
-						
+									
 			for (j in seqLen(litterSize)){
 				child = p.addCrossed(parent1, parent2);
 				child.tagF = 0;
@@ -252,7 +316,7 @@ early() {
 
 
 			//interact with 3 others OR the number of all available others
-			for (i in seqLen(min(3, young.length - 1))){
+			for (i in seqLen(min(3, length(young) - 1))){
 				//get another 
 				do {
 					o = sample(young, 1);
@@ -315,29 +379,35 @@ late() {
 		}
 		
 		if(status != "NONE"){
-			
-			if(status != "ongoing"){
 			//write to file
 			writeFile(
 				outputPath,
 				paste(
 					c(
-						sim.generation,
-						fitness,
-						cost,
-						benefit,
-						length(unique(
+						sim.generation, 					//generation
+						fitness, 							//fitness
+						cost, 								//cost
+						benefit, 							//benefit 
+						litterSize, 						//litter size
+						mRate, 								//migration rate
+						sum(									//population size
+							sim.subpopulations.individualCount
+							),
+						length(unique( 					//number neutral mutations
 							sim.subpopulations.genomes.mutations[
 								sim.subpopulations.genomes.mutations.mutationType == m2]
 							)),
-						subpopAllHeterozygosity(m2),
-						percentM1,
-						status,
-						replicate,
-						seedPath
+						subpopAllHeterozygosity(m2), 	//pi
+						globalFST(T), 						//global FST
+						percentM1, 							//percent altruistic allele
+						status,								//status
+						replicate,							//replicate
+						seedPath								//seed
 					),
 					sep = ","),
 				append = T);
+			
+			if(status != "ongoing"){
 				sim.simulationFinished();
 			}
 

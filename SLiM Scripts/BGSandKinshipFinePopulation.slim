@@ -55,7 +55,7 @@ function (f$)subpopHeterozygosity(o<Subpopulation>$ subpop, o<MutationType>$m, [
 }
 
 
-// initialize
+// set up a simple neutral simulation
 initialize() {
 	initializeSLiMModelType("nonWF");
 	
@@ -111,7 +111,12 @@ reproduction() {
 	for (i in seq(0, p1.individualCount - 2, by=2)){
 		parent1 = parents[i];
 		parent2 = parents[i + 1];
-
+		
+		//litterSize = 4;
+		if(litterSize == 0){
+			litterSize = 1;
+		}
+		
 		//fill litter with random individuals
 		litter = matrix(p1.individuals[1:litterSize], litterSize);
 		
@@ -172,7 +177,7 @@ fitness(NULL){
 	}
 }
 
-4999 late(){
+5000 early(){
 	target = sample(p1.genomes, 1);
 	target.addNewDrawnMutation(m1, 1000);
 }
@@ -204,7 +209,7 @@ late() {
 			status = "fixed";
 		}
 		else if(!(sim.generation % 10)){
-			//status = "ongoing"; //removed to save space
+			status = "ongoing";
 		}
 		
 		if(status != "NONE"){
@@ -217,7 +222,6 @@ late() {
 						fitness,
 						cost,
 						benefit,
-						litterSize,
 						sum(sim.subpopulations.individualCount),
 						length(unique(p1.genomes.mutations[p1.genomes.mutations.mutationType == m2])),
 						subpopHeterozygosity(p1, m2),

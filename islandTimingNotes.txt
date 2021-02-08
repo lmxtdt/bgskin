@@ -1,8 +1,0 @@
-
-island7: Nov. 6 11:22:27 - Nov. 8 01:54:12 (~37.5 hours) (~15,000 per hour) (b = 0.20)
-island8: Nov. 6 11:22:27 - Nov. 7 08:22:04 (~21 hours) (~26,000 per hour) (b = 0.19)
-island9: Nov. 6 11:37:29 - Nov. 7 09:31:26 (~22 hours) (~12,000 per hour) (b = 0.21)
-island10 Nov. 6 11:40:46 - Nov. 7 09:47:22 (~22 hours) (~12,000 per hour) (b = 0.21)
-
-I want 80,000 more of each (it was previously 8000)
-also they used a f = 10 for some dumbass reason

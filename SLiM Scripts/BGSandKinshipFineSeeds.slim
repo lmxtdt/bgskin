@@ -55,7 +55,7 @@ function (f$)subpopHeterozygosity(o<Subpopulation>$ subpop, o<MutationType>$m, [
 }
 
 
-// initialize
+// set up a simple neutral simulation
 initialize() {
 	initializeSLiMModelType("nonWF");
 	
@@ -68,7 +68,6 @@ initialize() {
 	defineConstant("fitness", f / 1000);
 	
 	//other
-	//defineConstant("replicate", 1);
 	defineConstant("cost", c / 1000);
 	defineConstant("benefit", b / 1000);
 	
@@ -111,7 +110,7 @@ reproduction() {
 	for (i in seq(0, p1.individualCount - 2, by=2)){
 		parent1 = parents[i];
 		parent2 = parents[i + 1];
-
+		
 		//fill litter with random individuals
 		litter = matrix(p1.individuals[1:litterSize], litterSize);
 		
@@ -152,29 +151,26 @@ fitness(NULL){
 
 
 1 {
-	print(paste(c("\tfitness: ", fitness, "\tbenefit: ", benefit, "\treplicate: ", replicate)));
+	sim.readFromPopulationFile(seedPath);
+	sim.subpopulations.individuals.tagF = 0.0;
 
-	if(!makeSeeds){
-		sim.readFromPopulationFile(seedPath);
-		sim.subpopulations.individuals.tagF = 0.0;
-		sim.generation = 4999;
-	}
-	else{
-		sim.addSubpop("p1", popSize);
-		p1.individuals.tagF = 0;
-	}
-}
-
-4999 early(){
-	if(makeSeeds){
-		sim.outputFull(seedPath);
-		sim.simulationFinished();
-	}
-}
-
-4999 late(){
-	target = sample(p1.genomes, 1);
-	target.addNewDrawnMutation(m1, 1000);
+	writeFile(
+		outputPath,
+		paste(
+			c(
+				fitness,
+				cost,
+				benefit,
+				sum(sim.subpopulations.individualCount),
+				length(unique(p1.genomes.mutations[p1.genomes.mutations.mutationType == m2])),
+				length(unique(p1.genomes.mutations[p1.genomes.mutations.mutationType == m3])),
+				subpopHeterozygosity(p1, m2),
+				seedPath
+			),
+			sep = ","),
+		append = T);
+	
+	sim.simulationFinished();
 }
 
 early() {
@@ -220,6 +216,7 @@ late() {
 						litterSize,
 						sum(sim.subpopulations.individualCount),
 						length(unique(p1.genomes.mutations[p1.genomes.mutations.mutationType == m2])),
+						length(unique(p1.genomes.mutations[p1.genomes.mutations.mutationType == m3])),
 						subpopHeterozygosity(p1, m2),
 						percentM1,
 						status,
@@ -238,6 +235,3 @@ late() {
 	}
 }
 
-25000 late() {
-	sim.simulationFinished();
-}
