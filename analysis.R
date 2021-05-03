@@ -3,50 +3,6 @@ library(scales)
 library(ggpubr)
 setwd("~/Desktop/Brandvain Lab/BG and kinship/")
 
-processRaw <- function(rawData) {
-  filtered <- rawData %>% 
-                  #group_by(replicate) %>%
-                  #mutate(maxGen = max(generation)) %>%
-                  #ungroup() %>%
-                  #filter(generation == maxGen) %>%
-                  #select(-maxGen) %>%
-                  filter(status != "ongoing")
-  return(filtered)
-}
-
-getStats <- function(data) {
-  stats <- data %>%
-                  group_by(fitness, benefit, cost) %>%
-                  summarize(numLost = sum(status == "lost"), 
-                            numFixed = sum(status == "fixed"),
-                            numTotal = numLost + numFixed,
-                            percentFixed = numFixed / numTotal) %>%
-                  ungroup()
-  return(stats)
-}
-
-getStats2 <- function(data) {
-  stats <- data %>%
-    group_by(fitness, benefit, cost, litterSize) %>%
-    summarize(numLost = sum(status == "lost"), 
-              numFixed = sum(status == "fixed"),
-              numTotal = numLost + numFixed,
-              percentFixed = numFixed / numTotal) %>%
-    ungroup()
-  return(stats)
-}
-
-getStatsR <- function(data) {
-  stats <- data %>%
-    group_by(fitness, benefit, cost, recom_rate) %>%
-    summarize(numLost = sum(status == "lost"), 
-              numFixed = sum(status == "fixed"),
-              numTotal = numLost + numFixed,
-              percentFixed = numFixed / numTotal) %>%
-    ungroup()
-  return(stats)
-}
-
 fitnessColors = c("#333333",
                   "#4B5899", 
                   "#5181A6", 
@@ -61,6 +17,13 @@ litterColors = c("#528FCC",
                  "#562D80", 
                  "#730A3F", 
                  "#400D0E")
+
+litterColorsNo2 = c("#528FCC",
+#                 "#4747B3", 
+                 "#562D80", 
+                 "#730A3F", 
+                 "#400D0E")
+
 
 litterColors2 = c("#E6D273",
                   "#AEBF56", 
@@ -98,87 +61,8 @@ custom_theme <- function (base_size = 12, base_family = "") {
 
 #         Data
 
-#seeds
-seedAnalysis <- read_csv("CSVs/seedAnalysis.csv",
-                         col_names = c("fitness",
-                                       "cost",
-                                       "benefit",
-                                       "popSize",
-                                       "numNeutral",
-                                       "numNeg",
-                                       "pi",
-                                       "seedPath"))
-
-seedAnalysis$Ne <- seedAnalysis$pi / (4 * 5e-08)
-
-hist(seedAnalysis$Ne)
-
-seedSummary <- seedAnalysis %>% 
-  group_by(fitness) %>%
-  summarize(popSize = mean(popSize),
-            numNeutral = mean(numNeutral),
-            numNeg = mean(numNeg),
-            meanNeg = mean(fitness) * numNeg * -1,
-            pi = mean(pi)) %>%
-  ungroup()
-
-seedsBGS <- seedSummary %>%
-  filter(fitness != 0) %>%
-  filter(fitness != -1)
-
-seedsCtrl <- seedSummary %>%
-  filter(fitness %% 1 == 0)
-
-mean(seedsBGS$pi)
-mean(seedsCtrl$pi)
-
-# early
-#BGKRaw <- read_csv("CSVs/boundTotal.csv")
-#BGKdata <- processRaw(BGKRaw)
-#BGKstats <- getStats(BGKdata)
-#write_csv(BGKstats, 
-#          path = "CSVs/earlyStats0.csv", 
-#          col_names = TRUE)
-
-earlyStats0 <- read_csv("CSVs/earlyStats0.csv")
-
-#early1 <- read_csv("CSVs/earlyTotal1.csv")
-#earlyStats1 <- getStats(early1)
-#write_csv(earlyStats1,
-#          path = "CSVs/earlyStats1.csv",
-#          col_names = TRUE)
-earlyStats1 <- read_csv("CSVs/earlyStats1.csv")
-
-
-#early2 <- read_csv("CSVs/earlyTotal2.csv")
-#early2n <- early2 %>% filter(cost > 0) #cuts out one row with NA values
-#earlyStats2 <- getStats(early2n)
-#write_csv(earlyStats2,
-#          path = "CSVs/earlyStats2.csv",
-#          col_names = TRUE)
-earlyStats2 <- read_csv("CSVs/earlyStats2.csv")
-
-#early3 <- read_csv("CSVs/earlyTotal3.csv")
-#earlyStats3 <- getStats(early3)
-#write_csv(earlyStats3,
-#          path = "CSVs/earlyStats3.csv",
-#          col_names = TRUE)
-earlyStats3 <- read_csv("CSVs/earlyStats3.csv")
-
-allEarly <- full_join(earlyStats0, earlyStats1)
-allEarly <- full_join(allEarly, earlyStats2)
-allEarly <- full_join(allEarly, earlyStats3)
-allEarly <- allEarly %>% filter(benefit != 0.22)
-earlyStats <- allEarly %>%
-  group_by(fitness, benefit, cost) %>%
-  summarize(numLost = sum(numLost),
-            numFixed = sum(numFixed),
-            numTotal = sum(numTotal),
-            percentFixed = numFixed/numTotal)
-
-#write_csv(earlyStats,
-#          path = "Data/largeIncrements.csv",
-#          col_names = TRUE)
+#large increments, mutation introducd in early()
+earlyStats <- read_csv("Data/largeIncrements.csv")
 
 earlyRow1 <- ggplot(earlyStats %>% 
                       filter(benefit < 0.2) %>% 
@@ -251,36 +135,12 @@ ggplot(earlyStats %>%
              alpha = 0.75) +
   xlab("Fitness of detrimental allele") +
   ylab("Fixation rate of altruistic allele") + 
-  ggtitle("Fixation by Benefit") +
   custom_theme()
 
+
+
 # late
-#lateRaw <- read_csv("CSVs/lateTotal.csv")
-#late <- processRaw(lateRaw)
-#lateStats <- getStats(late)
-#write_csv(lateStats,
-#          "CSVs/lateStats.csv",
-#          col_names = TRUE)
-lateStats1 <- read_csv("CSVs/lateStats.csv")
-
-#late2 <- read_csv("CSVs/lateTotal2.csv")
-#lateStats2 <- getStats(late2)
-#write_csv(lateStats2,
-#          "CSVs/lateStats2.csv",
-#          col_names = TRUE)
-lateStats2 <- read_csv("CSVs/lateStats2.csv")
-
-allLate <- full_join(lateStats1, lateStats2)
-lateStats <- allLate %>%
-  group_by(fitness, benefit, cost) %>%
-  summarize(numLost = sum(numLost),
-            numFixed = sum(numFixed),
-            numTotal = sum(numTotal),
-            percentFixed = numFixed/numTotal)
-
-#write_csv(lateStats,
-#          path = "Data/lateLargeIncrements.csv",
-#          col_names = TRUE)
+lateStats <- "Data/lateLargeIncrements.csv"
 
 ggplot(earlyStats %>% 
          filter(benefit != 0.22) %>% 
@@ -486,60 +346,8 @@ ggplot(both21 %>%
   ylab("Fixation rate of altruistic allele") + 
   ggtitle("Early vs Late at Benefit = 0.21")
 
-# smaller increments for benefit
-
-#fineRaw2 <- read_csv("CSVs/fineTotal2.csv")
-#fine2 <- processRaw(fineRaw2)
-#write_csv(fine2, 
-#          path = "CSVs/fineTotal2-processed.csv", 
-#          col_names = TRUE)
-#rm(fineRaw2)
-#fine2Stats <- getStats(fine2)
-#write_csv(fine2Stats,
-#          path = "CSVs/fine2Stats.csv",
-#          col_names = TRUE)
-#rm(fine2)
-fine2Stats <- read_csv("CSVs/fine2Stats.csv")
-
-#fineRaw3 <- read_csv("CSVs/fineTotal3.csv")
-#fine3 <- processRaw(fineRaw3)
-#write_csv(fine3,
-#          path = "CSVs/fineTotal3-processed.csv",
-#          col_names = TRUE)
-#rm(fineRaw3)
-#fine3Stats <- getStats(fine3)
-#write_csv(fine3Stats,
-#          path = "CSVs/fine3Stats.csv",
-#          col_names = TRUE)
-#rm(fine3)
-fine3Stats <- read_csv("CSVs/fine3Stats.csv")
-
-#fineRaw4 <- read_csv("CSVs/fineTotal4.csv")
-#fine4 <- processRaw(fineRaw4)
-#write_csv(fine4,
-#          path = "CSVs/fineTotal4-processed.csv",
-#          col_names = TRUE)
-#rm(fineRaw4)
-#fine4Stats <- getStats(fine4)
-#write_csv(fine4Stats,
-#          path = "CSVs/fine4Stats.csv",
-#          col_names = TRUE)
-#rm(fine4)
-fine4Stats <- read_csv("CSVs/fine4Stats.csv")
-
-
-allStats <- full_join(fine2Stats,fine3Stats)
-allStats <- full_join(allStats, fine4Stats)
-fineStats <- allStats %>%
-            group_by(fitness, benefit, cost) %>%
-            summarize(numLost = sum(numLost),
-                      numFixed = sum(numFixed),
-                      numTotal = sum(numTotal),
-                      percentFixed = numFixed/numTotal)
-
-#write_csv(fineStats,
-#          path = "Data/fineIncrements.csv",
-#          col_names = TRUE)
+# smaller increments
+fineStats <- read_csv("Data/fineIncrements.csv")
 
 ggplot(fineStats %>% 
          filter(benefit >= 0.193) %>%
@@ -575,7 +383,7 @@ ggplot(fineStats %>%
                     labels = fitnessLabels) +
   scale_x_discrete(labels = fitnessLabels) +
   geom_col() +
-  scale_y_continuous(labels = number_format(trim = FALSE)) +
+  scale_y_continuous(labels = scientific) +
   facet_wrap(~benefit,
              scales = "free_y",
              ncol = 2) + 
@@ -583,11 +391,58 @@ ggplot(fineStats %>%
              color = "red",
              alpha = 0.75) +
   xlab("Fitness effect of detrimental allele") + 
-  ylab("Fixation chance of altruistic allele") + 
-  ggtitle("Fixation Chance by Benefit from Being Helped") + 
+  ylab("Fixation chance of dominant altruistic allele") + 
   custom_theme()  %+replace%
   theme(axis.text.x = element_text(angle = 90, hjust = 0))
 
+ggplot(fineStats %>% 
+         filter(benefit >= 0.196) %>%
+         mutate(fitness = factor(fitness)),
+       aes (x = fitness, 
+            y  = percentFixed,
+            group = factor(benefit),
+            fill = fitness)) +
+  scale_fill_manual(name = "Fitness",
+                    values = fitnessColors,
+                    labels = fitnessLabels) +
+  scale_x_discrete(labels = fitnessLabels) +
+  geom_col() +
+  scale_y_continuous(labels = scientific) +
+  facet_wrap(~benefit,
+             scales = "free_y",
+             ncol = 2) + 
+  geom_hline(yintercept = 1/6000,
+             color = "red",
+             alpha = 0.75) +
+  xlab("Fitness effect of detrimental allele") + 
+  ylab("Fixation chance of dominant altruistic allele") + 
+  custom_theme()  %+replace%
+  theme(axis.text.x = element_text(angle = 90, hjust = 0))
+
+#ggplot(het6 %>% 
+ggplot(hetStats %>% filter(numInter == 1) %>%
+         filter(benefit >= 0.198) %>%
+         mutate(fitness = factor(fitness)),
+       aes (x = fitness, 
+            y  = percentFixed,
+            group = factor(benefit),
+            fill = fitness)) +
+  scale_fill_manual(name = "Fitness",
+                    values = fitnessColors,
+                    labels = fitnessLabels) +
+  scale_x_discrete(labels = fitnessLabels) +
+  geom_col() +
+  scale_y_continuous(labels = scientific) +
+  facet_wrap(~benefit,
+             scales = "free_y",
+             ncol = 2) + 
+  geom_hline(yintercept = 1/6000,
+             color = "red",
+             alpha = 0.75) +
+  xlab("Fitness effect of detrimental allele") + 
+  ylab("Fixation chance of non-dominant altruistic allele") + 
+  custom_theme()  %+replace%
+  theme(axis.text.x = element_text(angle = 90, hjust = 0))
 
 ggplot(fineStats %>% 
          filter(benefit >= 0.1956) %>%
@@ -689,74 +544,7 @@ ggarrange(fineRow1, fineRow2, fineRow3,
           legend = "right")
 
 #litter
-#litterRaw <- read_csv("CSVs/litterTotal.csv")
-#litter <- processRaw(litterRaw)
-#write_csv(litter,
-#          path = "CSVs/litter-processed.csv",
-#          col_names = TRUE)
-#rm(litterRaw)
-#litterStats <- getStats2(litter)
-#write_csv(litterStats,
-#          "CSVs/litterStats.csv",
-#          col_names = TRUE)
-litterStats1 <- read_csv("CSVs/litterStats.csv")
-
-#litterRaw2 <- read_csv("CSVs/litterTotal2.csv")
-#litter2 <- processRaw(litterRaw2)
-#write_csv(litter2,
-#          path = "CSVs/litter2-processed.csv",
-#          col_names = TRUE)
-#rm(litterRaw2)
-#litterStats2 <- getStats2(litter2)
-#write_csv(litterStats2,
-#          "CSVs/litterStats2.csv",
-#          col_names = TRUE)
-litterStats2 <- read_csv("CSVs/litterStats2.csv")
-
-#litterRaw3 <- read_csv("CSVs/litterTotal3.csv")
-#litter3 <- processRaw(litterRaw3)
-#write_csv(litter3,
-#          path = "CSVs/litter3-processed.csv",
-#          col_names = TRUE)
-#rm(litterRaw3)
-#litterStats3 <- getStats2(litter3)
-#write_csv(litterStats3,
-#          "CSVs/litterStats3.csv",
-#          col_names = TRUE)
-litterStats3 <- read_csv("CSVs/litterStats3.csv")
-
-#litter4 <- read_csv("CSVs/litterTotal4.csv")
-#litterStats4 <- getStats2(litter4)
-#write_csv(litterStats4,
-#          "CSVs/litterStats4.csv",
-#          col_names = TRUE)
-litterStats4 <- read_csv("CSVs/litterStats4.csv")
-
-#litter5 <- read_csv("CSVs/litterTotal5.csv")
-#litterStats5 <- getStats2(litter5)
-#write_csv(litterStats5,
-#          "CSVs/litterStats5.csv",
-#          col_names = TRUE)
-litterStats5 <- read_csv("CSVs/litterStats5.csv")
-
-
-
-allLitter <- full_join(litterStats1,litterStats2)
-allLitter <- full_join(allLitter,litterStats3)
-allLitter <- full_join(allLitter,litterStats4)
-allLitter <- full_join(allLitter,litterStats5)
-
-
-litterStats <- allLitter %>%
-  group_by(fitness, benefit, cost, litterSize) %>%
-  summarize(numLost = sum(numLost),
-            numFixed = sum(numFixed),
-            numTotal = sum(numTotal),
-            percentFixed = numFixed/numTotal)
-
-#write_csv(litterStats,
-#          path = "Data/litter.csv",
-#          col_names = TRUE)
+litterStats <- read_csv("Data/litter.csv")
 
 ggplot(litterStats %>% 
          mutate(fitness = factor(fitness)),
@@ -802,6 +590,56 @@ ggplot(litterStats %>%
   xlab("Fitness of detrimental allele") + 
   ylab("Fixation rate of altruistic allele") + 
   ggtitle("Fixation by Benefit and Litter Size") + 
+  custom_theme() %+replace%
+  theme(axis.text.x = element_text(angle = 90, hjust = 0),
+        axis.ticks.y = element_line(),
+        panel.grid.major.x = element_line(color = "#BBBBBB"))
+
+litterNo2 = litterStats %>% filter(litterSize != 2)
+
+ggplot(litterNo2 %>%
+         mutate(fitness = factor(fitness)),
+       aes (x = fitness, 
+            y  = percentFixed,
+            group = factor(litterSize),
+            color = factor(litterSize))) +
+  geom_point() +
+  scale_color_manual(name = "Litter Size",
+                     values = litterColorsNo2,
+                     guide = guide_legend(reverse = TRUE)) +
+  geom_line(data = litterNo2 %>% 
+              mutate(fitness = factor(fitness)) %>% 
+              filter(fitness != 0) %>%
+              filter(fitness != -1),
+            size = 1) + 
+  geom_line(data = litterNo2 %>% 
+              filter(fitness <= -0.014) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_line(data = litterNo2 %>% 
+              filter(fitness >= -0.006) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_hline(yintercept = 1/4000,
+             color = litterColorsNo2[1],
+             alpha = 0.9) + 
+  geom_hline(yintercept = 1/6000,
+             color = litterColorsNo2[2],
+             alpha = 0.9) + 
+  geom_hline(yintercept = 1/8000,
+             color = litterColorsNo2[3],
+             alpha = 0.9) + 
+  geom_hline(yintercept = 1/10000,
+             color = litterColorsNo2[4],
+             alpha = 0.9) + 
+  geom_hline(yintercept = 1/12000,
+             color = litterColorsNo2[5],
+             alpha = 0.9) + 
+  facet_wrap(~benefit, scales = "free_y") +
+  scale_y_continuous(labels = scientific,
+                     trans = "log1p") +
+  xlab("Fitness of detrimental allele") + 
+  ylab("Fixation rate of altruistic allele") + 
   custom_theme() %+replace%
   theme(axis.text.x = element_text(angle = 90, hjust = 0),
         axis.ticks.y = element_line(),
@@ -863,46 +701,8 @@ ggplot(litterStats %>%
   theme(axis.text.x=element_blank(),
         axis.ticks.x=element_blank())
 
-
-ggplot(blah %>% 
-         mutate(fitness = factor(fitness)),
-       aes (x = fitness, 
-            y  = percentFixed,
-            fill = factor(fitness))) +
-  scale_fill_manual(name = "Fitness",
-                    values = fitnessColors,
-                    labels = fitnessLabels) +
-  geom_col() +
-  theme(axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) +
-  geom_hline(yintercept = 0.000166666666667,
-             #color = "dodgerblue3",
-             color = "red",
-             alpha = 0.75) +
-  geom_hline(yintercept = 0.000281220217284,
-             #color = "dodgerblue3",
-             color = "green",
-             alpha = 0.75) +
-  xlab("Fitness of detrimental allele") + 
-  ylab("Fixation rate of altruistic allele")
-
-
 #recombination
-#recom1 <- read_csv("CSVs/recomTotal1.csv")
-#recomStats1 <- getStatsR(recom1)
-#write_csv(recomStats1,
-#          "CSVs/recomStats1.csv",
-#          col_names = TRUE)
-recomStats1 <- read_csv("CSVs/recomStats1.csv")
-
-recomStats0 <- fineStats %>% filter(benefit == 0.2)
-recomStats0$recom_rate <- 1e-8
-
-recomStats <- full_join(recomStats0, recomStats1)
-
-write_csv(recomStats,
-          path = "Data/recombination.csv",
-          col_names = TRUE)
+recomStats <- read_csv("Data/recombination.csv")
 
 ggplot(recomStats %>% 
          mutate(fitness = factor(fitness)),
@@ -926,53 +726,12 @@ ggplot(recomStats %>%
         axis.ticks.x=element_blank())
 
 #one-way interactions
-#one1 <- read_csv("CSVs/oneTotal1.csv")
-#oneStats1 <- getStats2(one1)
-#write_csv(oneStats1,
-#          "CSVs/oneStats1.csv",
-#          col_names = TRUE)
-oneStats1 <- read_csv("CSVs/oneStats1.csv")
-
-#one2 <- read_csv("CSVs/oneTotal2.csv")
-#oneStats2 <- getStats2(one2)
-#write_csv(oneStats2,
-#          "CSVs/oneStats2.csv",
-#          col_names = TRUE)
-oneStats2 <- read_csv("CSVs/oneStats2.csv")
-
-#one3 <- read_csv("CSVs/oneTotal3.csv")
-#oneStats3 <- getStats2(one3)
-#write_csv(oneStats3,
-#          "CSVs/oneStats3.csv",
-#          col_names = TRUE)
-oneStats3 <- read_csv("CSVs/oneStats3.csv")
-
-#one4 <- read_csv("CSVs/oneTotal4.csv")
-#oneStats4 <- getStats2(one4)
-#write_csv(oneStats4,
-#          "CSVs/oneStats4.csv",
-#          col_names = TRUE)
-oneStats4 <- read_csv("CSVs/oneStats4.csv")
-
-allOne <- full_join(oneStats1, oneStats2)
-allOne <- full_join(allOne, oneStats3)
-allOne <- full_join(allOne, oneStats4)
-
-oneStats <- allOne %>%
-  group_by(fitness, benefit, cost, litterSize) %>%
-  summarize(numLost = sum(numLost),
-            numFixed = sum(numFixed),
-            numTotal = sum(numTotal),
-            percentFixed = numFixed/numTotal)
-
-write_csv(oneStats,
-          path = "Data/oneWayInteractions.csv",
-          col_names = TRUE)
+oneStats <- read_csv("Data/oneWayInteractions.csv")
 
 oneL4 <- oneStats %>% filter(litterSize == 4)
 oneL2 <- oneStats %>% filter(litterSize == 2)
 
-filteredOne <- oneStats %>% filter(benefit > 0.195)
+filteredOne <- oneStats %>% filter(benefit > 0.195) %>% filter(litterSize != 2)
 
 ggplot(oneStats %>% 
          mutate(fitness = factor(fitness)),
@@ -1044,20 +803,17 @@ ggplot(filteredOne %>%
               filter(fitness >= -0.006) %>%
               mutate(fitness = factor(fitness)),
             linetype = "dashed") +
-  geom_hline(yintercept = 1/4000,
+  geom_hline(yintercept = 1/6000,
              color = litterColors[1],
              alpha = 0.9) + 
-  geom_hline(yintercept = 1/6000,
+  geom_hline(yintercept = 1/8000,
              color = litterColors[2],
              alpha = 0.9) + 
-  geom_hline(yintercept = 1/8000,
+  geom_hline(yintercept = 1/10000,
              color = litterColors[3],
              alpha = 0.9) + 
-  geom_hline(yintercept = 1/10000,
-             color = litterColors[4],
-             alpha = 0.9) + 
   geom_hline(yintercept = 1/12000,
-             color = litterColors[5],
+             color = litterColors[4],
              alpha = 0.9) + 
   facet_wrap(~benefit, scales = "free_y") +
   scale_y_continuous(labels = scientific,
@@ -1117,3 +873,246 @@ ggplot(oneL2 %>% filter(benefit != 0.195) %>%
   custom_theme()  %+replace%
   theme(axis.text.x = element_text(angle = 90, hjust = 0))
 
+#single interaction
+singleStats <- read_csv("Data/singleInteractions.csv")
+
+singleFine <- singleStats %>% filter(benefit > 0.19 & benefit < 0.21)
+singleBig <- singleStats %>% filter(benefit <= 0.19 | benefit >= 0.21 | benefit == 0.2)
+
+ggplot(singleFine %>% 
+         mutate(fitness = factor(fitness)),
+       aes (x = fitness, 
+            y  = percentFixed,
+            group = factor(litterSize),
+            color = factor(litterSize))) +
+  geom_point() +
+  scale_color_manual(name = "Litter Size",
+                     values = litterColors) +
+  geom_line(data = singleFine %>% 
+              mutate(fitness = factor(fitness)) %>% 
+              filter(fitness != 0) %>%
+              filter(fitness != -1),
+            size = 1) + 
+  geom_line(data = singleFine %>% 
+              filter(fitness <= -0.014) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_line(data = singleFine %>% 
+              filter(fitness >= -0.006) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_hline(yintercept = 1/4000,
+             color = litterColors[1],
+             alpha = 0.9) + 
+  geom_hline(yintercept = 1/6000,
+             color = litterColors[2],
+             alpha = 0.9) + 
+  geom_hline(yintercept = 1/8000,
+             color = litterColors[3],
+             alpha = 0.9) + 
+  geom_hline(yintercept = 1/10000,
+             color = litterColors[4],
+             alpha = 0.9) + 
+  geom_hline(yintercept = 1/12000,
+             color = litterColors[5],
+             alpha = 0.9) + 
+  facet_wrap(~benefit, scales = "free_y") +
+  scale_y_continuous(labels = scientific,
+                     trans = "log1p") +
+  xlab("Fitness of detrimental allele") + 
+  ylab("Fixation rate of altruistic allele") + 
+  custom_theme() %+replace%
+  theme(axis.text.x = element_text(angle = 90, hjust = 0),
+        axis.ticks.y = element_line(),
+        panel.grid.major.x = element_line(color = "#BBBBBB"))
+
+singleNo2 = singleFine %>% filter(litterSize != 2)
+
+ggplot(singleNo2 %>% 
+         mutate(fitness = factor(fitness)),
+       aes (x = fitness, 
+            y  = percentFixed,
+            group = factor(litterSize),
+            color = factor(litterSize))) +
+  geom_point() +
+  scale_color_manual(name = "Litter Size",
+                     values = litterColorsNo2) +
+  geom_line(data = singleNo2 %>% 
+              mutate(fitness = factor(fitness)) %>% 
+              filter(fitness != 0) %>%
+              filter(fitness != -1),
+            size = 1) + 
+  geom_line(data = singleNo2 %>% 
+              filter(fitness <= -0.014) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_line(data = singleNo2 %>% 
+              filter(fitness >= -0.006) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_hline(yintercept = 1/6000,
+             color = litterColorsNo2[1],
+             alpha = 0.9) + 
+  geom_hline(yintercept = 1/8000,
+             color = litterColorsNo2[2],
+             alpha = 0.9) + 
+  geom_hline(yintercept = 1/10000,
+             color = litterColorsNo2[3],
+             alpha = 0.9) + 
+  geom_hline(yintercept = 1/12000,
+             color = litterColorsNo2[4],
+             alpha = 0.9) + 
+  facet_wrap(~benefit, scales = "free_y") +
+  scale_y_continuous(labels = scientific,
+                     trans = "log1p") +
+  xlab("Fitness of detrimental allele") + 
+  ylab("Fixation rate of altruistic allele") + 
+  custom_theme() %+replace%
+  theme(axis.text.x = element_text(angle = 90, hjust = 0),
+        axis.ticks.y = element_line(),
+        panel.grid.major.x = element_line(color = "#BBBBBB"))
+
+ggplot(singleBig %>% filter(litterSize == 4) %>%
+         mutate(fitness = factor(fitness)),
+       aes(x = fitness,
+           y = percentFixed,
+           group = factor(benefit),
+           fill = fitness)) +
+  scale_fill_manual(name = "Fitness",
+                    values = fitnessColors,
+                    labels = fitnessLabels) +
+  scale_x_discrete(labels = fitnessLabels) +
+  geom_col() +
+  scale_y_continuous(labels = scientific) +
+  facet_wrap(~benefit, scales = "free_y") +
+  #facet_wrap(~benefit) +
+  geom_hline(yintercept = 1/6000,
+             color = "red",
+             alpha = 0.75) +
+  xlab("Fitness of detrimental allele") +
+  ylab("Fixation rate of altruistic allele") + 
+  custom_theme() %+replace%
+  theme(axis.text.x = element_text(angle = 90, hjust = 0))
+
+#heterozygosity
+hetStats <- read_csv("Data/heterozygous50.csv")
+
+het6 <- hetStats %>% filter(numInter == 6)
+
+domSingle <- singleFine %>% filter(litterSize == 4)
+domSingle$numInter = 1
+
+domSix <- fineStats %>% filter(benefit > 0.195)
+domSix$numInter = 6
+
+domStats <- full_join(domSingle, domSix)
+
+interColors = c("#88C5EB",
+                "#5AB0E6",
+                "#284E66")
+
+ggplot(hetStats %>% 
+         mutate(fitness = factor(fitness)),
+       aes (x = fitness, 
+            y  = percentFixed,
+            group = factor(numInter),
+            color = factor(numInter))) +
+  scale_color_manual(name = "Number of\nInteractions",
+                     values = interColors) +
+  geom_point() +
+  geom_line(data = hetStats %>% 
+              mutate(fitness = factor(fitness)) %>% 
+              filter(fitness != 0) %>%
+              filter(fitness != -1),
+            size = 1) + 
+  geom_line(data = hetStats %>% 
+              filter(fitness <= -0.014) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_line(data = hetStats %>% 
+              filter(fitness >= -0.006) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_hline(yintercept = 1/6000,
+             color = "blue",
+             alpha = 1) + 
+  facet_wrap(~benefit, scales = "free_y") +
+  scale_y_continuous(labels = scientific,
+                     trans = "log1p") +
+  xlab("Fitness of detrimental allele") + 
+  ylab("Fixation rate of altruistic allele") + 
+  custom_theme() %+replace%
+  theme(axis.text.x = element_text(angle = 90, hjust = 0),
+        axis.ticks.y = element_line(),
+        panel.grid.major.x = element_line(color = "#BBBBBB"))
+
+ggplot(domStats %>% 
+         mutate(fitness = factor(fitness)),
+       aes (x = fitness, 
+            y  = percentFixed,
+            group = factor(numInter),
+            color = factor(numInter))) +
+  geom_point() +
+  geom_line(data = domStats %>% 
+              mutate(fitness = factor(fitness)) %>% 
+              filter(fitness != 0) %>%
+              filter(fitness != -1),
+            size = 1) + 
+  geom_line(data = domStats %>% 
+              filter(fitness <= -0.014) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_line(data = domStats %>% 
+              filter(fitness >= -0.006) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_hline(yintercept = 1/6000,
+             alpha = 1) + 
+  facet_wrap(~benefit, scales = "free_y") +
+  scale_y_continuous(labels = scientific,
+                     trans = "log1p") +
+  xlab("Fitness of detrimental allele") + 
+  ylab("Fixation rate of altruistic allele") + 
+  ggtitle("Completely Dominant") +
+  custom_theme() %+replace%
+  theme(axis.text.x = element_text(angle = 90, hjust = 0),
+        axis.ticks.y = element_line(),
+        panel.grid.major.x = element_line(color = "#BBBBBB"))
+
+
+recStats <- recStats1
+
+ggplot(recStats %>% 
+         mutate(fitness = factor(fitness)),
+       aes (x = fitness, 
+            y  = percentFixed,
+            group = factor(numInter),
+            color = factor(numInter))) +
+  scale_color_manual(name = "Number of\nInteractions",
+                     values = interColors) +
+  geom_point() +
+  geom_line(data = recStats %>% 
+              mutate(fitness = factor(fitness)) %>% 
+              filter(fitness != 0) %>%
+              filter(fitness != -1),
+            size = 1) + 
+  geom_line(data = recStats %>% 
+              filter(fitness <= -0.014) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_line(data = recStats %>% 
+              filter(fitness >= -0.006) %>%
+              mutate(fitness = factor(fitness)),
+            linetype = "dashed") +
+  geom_hline(yintercept = 1/6000,
+             color = "blue",
+             alpha = 1) + 
+  facet_wrap(~benefit, scales = "free_y") +
+  scale_y_continuous(labels = scientific,
+                     trans = "log1p") +
+  xlab("Fitness of detrimental allele") + 
+  ylab("Fixation rate of altruistic allele") + 
+  custom_theme() %+replace%
+  theme(axis.text.x = element_text(angle = 90, hjust = 0),
+        axis.ticks.y = element_line(),
+        panel.grid.major.x = element_line(color = "#BBBBBB"))
